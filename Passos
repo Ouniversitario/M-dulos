@@ -1,0 +1,325 @@
+#Author:Maicon Ribeiro
+#Year:2017
+#O objetivo é criar uma série de passos que permite ao usuário ter o mínimo de interação necessária com a máquina, quando do 
+#processo de estimação de modelos ARIMA(p,d,q).
+#Os passos, descritos abaixo, devem ser utilizados de forma modular.
+
+#Passo 1
+
+print("Escolha a sua ação e plote no link")
+print("ex: link<-'www.yahoo.com.br/ugsthsjjs/pomo4/snindwdic'")
+
+#Passo 2
+
+####Entrada dos dados
+options(warn=-1)
+dados<-read.csv(link)
+print("Open(1),Close(2), High(3),Low(4)")
+a<-scan()
+if(a==1){x<-ts(na.omit(dados$Open))}
+if(a==2){x<-ts(na.omit(dados$Close))}
+if(a==3){x<-ts(na.omit(dados$High))}
+if(a==4){x<-ts(na.omit(dados$Low))}
+options(warn=0)
+
+#Passo 3
+
+
+####Mode para transformação de dados em Rt
+####Lembre-se que o nome do arquivo de dados é "dados"
+##Retorno de close = Rtx
+options(warn=-1)
+T<-length(x)
+Pt <- x[2:T]
+Pt_1 <- x[1:(T - 1)]
+Rt <- (Pt - Pt_1)/Pt_1
+plot.ts(Rt)
+print("Rt = retorno")
+options(warn=0)
+
+
+#Passo 4
+
+###Estatística descritiva dos dados
+##Análise numérica dos dados
+options(warn=-1)
+print(summary(Rt))
+print("var")
+print(var(Rt))
+print("Sd")
+print(sd(Rt))
+print("cv")
+print(mean(Rt)/sd(Rt))
+##plot de gráficos
+par(mfrow = c(2,2))
+plot.ts(Rt)
+hist(Rt)
+boxplot(Rt)
+qqnorm(Rt)
+##Correlograma
+print("Deseja ver o correlograma?")
+print("sim = 1, não =2")
+a<-scan()
+if(a==2){print("Próximo passo")}
+if(a==1){par(mfrow = c(1,2))}
+if(a==1){acf(Rt,200)}
+if(a==1){pacf(Rt,200)}
+options(warn=0)
+
+#Passo 5
+
+###Testes de raiz unitária e normalidade
+##Libraries
+options(warn=-1)
+library(tseries)
+library(normtest)
+##Testes de Normalidade
+#Jarque e Bera
+JB<-jarque.bera.test(Rt)
+print(JB)
+print("H0:Tem distribuição normal")
+if(JB$p.value>0.05){print("Não rejeita H0")} else {print("Rejeita H0")}
+#Shapiro Wilke
+SW<-kurtosis.norm.test(Rt,length(Rt))
+print(SW)
+print("H0:Tem distribuição normal")
+if(SW$p.value>0.05){print("Não rejeita H0")} else {print("Rejeita H0")}
+##Testes de raiz unitária
+par(mfrow = c(1,2))
+acf(Rt)
+pacf(Rt)
+adf<-adf.test(Rt)
+print(adf$p.value)
+print(adf)
+if(adf$p.value<0.05){print("Sem raiz unitária")}else {print("Com raiz unitária")}
+options(warn=0)
+
+#Passo 6
+
+###Diferenciação caso seja necessário
+print("Ordem de integração")
+options(warn=-1)
+
+
+##I(0)
+adf<-adf.test(Rt)
+adf$p.value<0.05
+if(adf$p.value<0.05){print("Estacionário(0)")} else {print("Diferenciar(1)")}
+a<-scan()
+
+
+##I(1)
+if(a==0){print("I(0)")}
+if(a==1){adf<-adf.test(diff(Rt))}
+if(a==1){adf$p.value<0.05}
+if(a==1){if(adf$p.value<0.05){print("Estacionária(0)")} else {print("Diferenciar (1)")}}
+if(a==1){b<-scan()}
+
+##I(2)
+if(a==1 && b==0){print("I(1)")}
+if(a==1 && b==1){adf<-adf.test(diff(diff(Rt)))}
+if(a==1 && b==1){adf$p.value<0.05}
+if(a==1 && b==1){if(adf$p.value<0.05){print("Estacionária(0)")} else {print("Diferenciar (1)")}}
+if(a==1 && b==1){c<-scan()}
+
+##I(3)
+if(a==1 && b==1 && c==0){print("I(2)")}
+if(a==1 && b==1 && c==1){adf<-adf.test(diff(diff(diff(Rt))))}
+if(a==1 && b==1 && c==1){adf$p.value<0.05}
+if(a==1 && b==1 && c==1){if(adf$p.value<0.05){print("Estacionária(0)")} else {print("Diferenciar (1)")}}
+if(a==1 && b==1 && c==1){if(adf$p.value<0.05){print("I(3)")} else {print("I(4 ou mais), Teste manualmente!!")}}
+options(warn=0)
+
+#Passo 7
+
+####Modelar a série
+options(warn=-1)
+print("Diferenciar? (I(0), I(1), I(2), I(3))")
+a<-scan()
+if(a==1){dRt<-diff(Rt)}
+if(a==2){ddRt<-diff(diff(Rt))}
+if(a==3){dddRt<-diff(diff(diff(Rt)))}
+
+####IC para I(0)
+if(a==0){ic<-2/(sqrt(length(Rt)))}
+if(a==0){icc<-(-1)*ic}
+####IC para I(1)
+if(a==1){ic<-2/(sqrt(length(dRt)))}
+if(a==1){icc<-(-1)*ic}
+####IC para I(2)
+if(a==2){ic<-2/(sqrt(length(ddRt)))}
+if(a==2){icc<-(-1)*ic}
+####IC para I(3)
+if(a==3){ic<-2/(sqrt(length(dddRt)))}
+if(a==3){icc<-(-1)*ic}
+
+###Gráficos e defasagens
+par(mfrow = c(1,2))
+###I(0)
+if(a==0){facp<-pacf(Rt, length(Rt))}
+if(a==0){fac<-acf(Rt,length(Rt))}
+###I(1)
+if(a==1){facp<-pacf(dRt, length(dRt))}
+if(a==1){fac<-acf(dRt,length(dRt))}
+###I(2)
+if(a==2){facp<-pacf(ddRt, length(ddRt))}
+if(a==2){fac<-acf(ddRt,length(ddRt))}
+###I(3)
+if(a==3){facp<-pacf(dddRt, length(dddRt))}
+if(a==3){fac<-acf(dddRt,length(dddRt))}
+
+###Qual o modelo?
+print("Qual o modelo?")
+print("AR, MA, ARMA")
+b<-scan()
+
+if(b==1){print("AR")}
+if(b==2){print("MA")}
+if(b==3){print("ARMA")}
+
+
+####Modelagem AR
+if(a==0 && b==1){print("Escolha as defasagens do AR")}
+if(a==0 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==0 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==0 && b==1){p<-scan()}
+if(a==0 && b==1){modelo<-arma(Rt, lag = list(ar = c(p)))}
+if(a==0 && b==1){print(modelo)}
+if(a==0 && b==1){print(summary(modelo))}
+
+if(a==1 && b==1){print("Escolha as defasagens do AR")}
+if(a==1 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==1 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==1 && b==1){p<-scan()}
+if(a==1 && b==1){modelo<-arma(Rt, lag = list(ar = c(p)))}
+if(a==1 && b==1){print(modelo)}
+if(a==1 && b==1){print(summary(modelo))}
+
+
+if(a==2 && b==1){print("Escolha as defasagens do AR")}
+if(a==2 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==2 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==2 && b==1){p<-scan()}
+if(a==2 && b==1){modelo<-arma(Rt, lag = list(ar = c(p)))}
+if(a==2 && b==1){print(modelo)}
+if(a==2 && b==1){print(summary(modelo))}
+
+if(a==3 && b==1){print("Escolha as defasagens do AR")}
+if(a==3 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==3 && b==1){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==3 && b==1){p<-scan()}
+if(a==3 && b==1){modelo<-arma(Rt, lag = list(ar = c(p)))}
+if(a==3 && b==1){print(modelo)}
+if(a==3 && b==1){print(summary(modelo))}
+
+####Modelagem MA
+if(a==0 && b==2){print("Escolha as defasagens do MA")}
+if(a==0 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==0 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==0 && b==2){q<-scan()}
+if(a==0 && b==2){modelo<-arma(Rt, lag = list(ma = c(q)))}
+if(a==0 && b==2){print(modelo)}
+if(a==0 && b==2){print(summary(modelo))}
+
+
+if(a==1 && b==2){print("Escolha as defasagens do MA")}
+if(a==1 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==1 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==1 && b==2){q<-scan()}
+if(a==1 && b==2){modelo<-arma(Rt, lag = list(ma = c(q)))}
+if(a==1 && b==2){print(modelo)}
+if(a==1 && b==2){print(summary(modelo))}
+
+if(a==2 && b==2){print("Escolha as defasagens do MA")}
+if(a==2 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==2 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==2 && b==2){q<-scan()}
+if(a==2 && b==2){modelo<-arma(Rt, lag = list(ma = c(q)))}
+if(a==2 && b==2){print(modelo)}
+if(a==2 && b==2){print(summary(modelo))}
+
+
+if(a==3 && b==2){print("Escolha as defasagens do MA")}
+if(a==3 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==3 && b==2){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==3 && b==2){q<-scan()}
+if(a==3 && b==2){modelo<-arma(Rt, lag = list(ma = c(q)))}
+if(a==3 && b==2){print(modelo)}
+if(a==3 && b==2){print(summary(modelo))}
+
+####Modelagem ARMA
+if(a==0 && b==3){print("Escolha as defasagens do AR")}
+if(a==0 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==0 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==0 && b==3){p<-scan()}
+if(a==0 && b==3){print("Escolha as defasagens do MA")}
+if(a==0 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==0 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==0 && b==3){q<-scan()}
+if(a==0 && b==3){modelo<-arma(Rt, lag = list(ar = c(p), ma = c(q)))}
+if(a==0 && b==3){print(modelo)}
+if(a==0 && b==3){print(summary(modelo))}
+
+if(a==1 && b==3){print("Escolha as defasagens do AR")}
+if(a==1 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==1 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==1 && b==3){p<-scan()}
+if(a==1 && b==3){print("Escolha as defasagens do MA")}
+if(a==1 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==1 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==1 && b==3){q<-scan()}
+if(a==1 && b==3){modelo<-arma(Rt, lag = list(ar = c(p), ma = c(q)))}
+if(a==1 && b==3){print(modelo)}
+if(a==1 && b==3){print(summary(modelo))}
+
+if(a==2 && b==3){print("Escolha as defasagens do AR")}
+if(a==2 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==2 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==2 && b==3){p<-scan()}
+if(a==2 && b==3){print("Escolha as defasagens do MA")}
+if(a==2 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==2 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==2 && b==3){q<-scan()}
+if(a==2 && b==3){modelo<-arma(Rt, lag = list(ar = c(p), ma = c(q)))}
+if(a==2 && b==3){print(modelo)}
+if(a==2 && b==3){print(summary(modelo))}
+
+if(a==3 && b==3){print("Escolha as defasagens do AR")}
+if(a==3 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]>ic){print(i)}}}
+if(a==3 && b==3){for(i in 1:length(facp$acf)){if(facp$acf[i]<icc){print(i)}}}
+if(a==3 && b==3){p<-scan()}
+if(a==3 && b==3){print("Escolha as defasagens do MA")}
+if(a==3 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]>ic){print(i)}}}
+if(a==3 && b==3){for(i in 2:length(fac$acf)){if(fac$acf[i]<icc){print(i)}}}
+if(a==3 && b==3){q<-scan()}
+if(a==3 && b==3){modelo<-arma(Rt, lag = list(ar = c(p), ma = c(q)))}
+if(a==3 && b==3){print(modelo)}
+if(a==3 && b==3){print(summary(modelo))}
+options(warn=0)
+
+#Passo 8
+
+#####Teste de Box-Jenkis
+####Especificação da variável
+e<-residuals(modelo)
+####Gráficos-1
+par(mfrow=c(2,2))
+hist(e)
+qqnorm(e)
+plot.ts(e)
+boxplot(e)
+##Fac e Facp
+print("Ver fac e facp?")
+a<-scan()
+if(a==1){u<-na.omit(ts(e))}
+if(a==1){par(mfrow=c(1,2))}
+if(a==1){acf(u)}
+if(a==1){pacf(u)}
+##Teste de Box-Jenkins
+print("Fazer Box-Jenkis?")
+b<-scan()
+if(b==1){print(Box.test(u))}
+
+
+
+
